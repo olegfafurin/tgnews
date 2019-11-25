@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <cassert>
+#include <vector>
 
 using std::string;
 using std::ios_base;
@@ -22,6 +23,7 @@ using std::ios;
 using std::stringstream;
 using std::smatch;
 using std::regex_replace;
+using std::locale;
 
 namespace fs = std::filesystem;
 
@@ -35,8 +37,8 @@ public:
     int description_counter = 0;
     int errors_counter = 0;
 
-    inline static const string DEFAULT_PATH = R"(/Users/konstantin.rybkin/projects/tg-contest-data)";
-    inline static const string CSV_PATH = "../pages.csv";
+    inline static const string DEFAULT_PATH = R"(H:\Docs\data\DataClusteringSample0107\20191101)";
+    inline static const string CSV_PATH = "pages.csv";
 
     Parser();
 
@@ -46,7 +48,11 @@ public:
 
     string get_body_text(const string& file);
 
-    static void to_lower(string& s);
+    static char to_lower(unsigned long code);
+
+    string process(const string &body);
+
+    static bool isLetter(unsigned long code);
 
     void parse(const string& path);
 
@@ -59,6 +65,9 @@ public:
         string title;
         string description;
         string content;
+
+        int irrelevant_symbols; // utf-8 symbols, non-space, non-latin, non-cyrillic in BODY, excluding tags
+        int total_symbols; // total non-space symbols in BODY, excluding tags
     };
 
     void create_empty_csv();
@@ -67,6 +76,9 @@ public:
 private:
     string base_path;
     ofstream ofs;
+
+    int buf_total_symbols;
+    int buf_irrelevant_symbols;
 };
 
 

@@ -3,3 +3,4 @@ cmake-*
 .git
 hp.txt
 jane.txt
+*.csv
