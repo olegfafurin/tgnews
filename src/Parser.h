@@ -37,14 +37,15 @@ public:
     int description_counter = 0;
     int errors_counter = 0;
 
-    inline static const string DEFAULT_PATH = R"(H:\Docs\data\DataClusteringSample0107\20191101)";
+    inline static const string DEFAULT_PATH = R"(/Users/konstantin.rybkin/projects/tg-contest-data)";
     inline static const string CSV_PATH = "pages.csv";
+    inline static const string DELIMITER = "\t";
 
     Parser();
 
     string readFile(const string& path);
 
-    string get_meta(const string &file, const string &pattern);
+    static string get_meta(const string &file, const string &pattern);
 
     string get_body_text(const string& file);
 
@@ -79,6 +80,9 @@ private:
 
     int buf_total_symbols;
     int buf_irrelevant_symbols;
+
+    template <typename T>
+    string join(const T& v, const string& delim);
 };
 
 

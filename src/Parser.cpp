@@ -7,15 +7,27 @@ Parser::Parser() : ofs(CSV_PATH, ios::binary) {
     create_empty_csv();
 }
 
+template<typename T>
+string Parser::join(const T &v, const string &delim) {
+    std::ostringstream s;
+    for (const auto& i : v) {
+        if (&i != &v[0]) {
+            s << delim;
+        }
+        s << i;
+    }
+    return s.str();
+}
+
 void Parser::create_empty_csv() {
-    ofs << "id,url,site_name,published_date,irr_letters,total_letters,title,description,content,\n";
+    ofs << join(std::vector<string>({"id", "url", "site_name", "published_date",
+                                    "irr_letters", "total_letters", "title", "description", "content"}), DELIMITER) + "\n";
 }
 
 void Parser::to_csv(const Parser::Page &page) {
-
-    ofs << page.id << "," << page.url << "," <<
-        page.site_name << "," << page.published_date << "," << page.irrelevant_symbols << "," << page.total_symbols << "," <<
-        page.title << "," << process(page.description) << "," << page.content << "\n";
+    ofs << join(std::vector<string>({std::to_string(page.id), page.url, page.site_name, page.published_date,
+                                     std::to_string(page.irrelevant_symbols), std::to_string(page.total_symbols),
+                                     page.title, page.description, page.content}), DELIMITER) + "\n";
 }
 
 string Parser::readFile(const string &path) {
@@ -55,20 +67,21 @@ void Parser::parse(const string &path) {
             file = readFile(itEntry.path().string());
             Page page;
             page.id = parse_counter;
-            if (!(page.url = get_meta(file, "<meta property=\"og:url\" content=\"(http.*)\"/>")).empty()) {
+            if (!(page.url = process(get_meta(file, "<meta property=\"og:url\" content=\"(http.*)\"/>"))).empty()) {
                 url_counter++;
             }
-            if (!(page.site_name = get_meta(file, "<meta property=\"og:site_name\" content=\"(.*)\"/>")).empty()) {
+            if (!(page.site_name = process(get_meta(file, "<meta property=\"og:site_name\" content=\"(.*)\"/>"))).empty()) {
                 site_name_counter++;
             }
-            if (!(page.published_date = get_meta(file,
-                                                 "<meta property=\"article:published_time\" content=\"(.*)\"/>")).empty()) {
+            if (!(page.published_date = process(get_meta(file,
+                                                 "<meta property=\"article:published_time\" content=\"(.*)\"/>"))).empty()) {
                 published_time_counter++;
             }
-            if (!(page.title = get_meta(file, "<meta property=\"og:title\" content=\"(.*)\"/>")).empty()) {
+            if (!(page.title = process(get_meta(file, "<meta property=\"og:title\" content=\"(.*)\"/>"))).empty()) {
                 title_counter++;
             }
-            if (!(page.description = get_meta(file, "<meta property=\"og:description\" content=\"(.*)\"/>")).empty()) {
+            if (!(page.description = process(
+                    get_meta(file, "<meta property=\"og:description\" content=\"(.*)\"/>"))).empty()) {
                 description_counter++;
             }
             page.content = get_body_text(file);
@@ -145,8 +158,10 @@ string Parser::process(const string &content) { // TODO: words are assembling or
         if (isLetter(code)) {
             result.emplace_back(char(to_lower(code)));
             space_added = false;
+        }else {
+            ++buf_irrelevant_symbols;
+//            result.emplace_back(' ');
         }
-        else ++buf_irrelevant_symbols;
         ++buf_total_symbols;
         ++i;
     }
@@ -163,6 +178,7 @@ char Parser::to_lower(unsigned long code) {
 }
 
 bool Parser::isLetter(unsigned long code) {
+    if (48 <= code && code <= 57) return true;  // digits
     if (65 <= code && code <= 90) return true;
     if (97 <= code && code <= 122) return true;
     if (1040 <= code && code <= 1103) return true;
