@@ -67,7 +67,7 @@ void Parser::parse(const string &path) {
             file = readFile(itEntry.path().string());
             Page page;
             page.id = parse_counter;
-            if (!(page.url = process(get_meta(file, "<meta property=\"og:url\" content=\"(http.*)\"/>"))).empty()) {
+            if (!(page.url = get_meta(file, "<meta property=\"og:url\" content=\"(http.*)\"/>")).empty()) {
                 url_counter++;
             }
             if (!(page.site_name = process(get_meta(file, "<meta property=\"og:site_name\" content=\"(.*)\"/>"))).empty()) {
@@ -99,7 +99,7 @@ string Parser::get_body_text(const string &file) { // TODO: remove parts of DATE
     return process(body);
 }
 
-string Parser::process(const string &content) { // TODO: words are assembling or repeating sometimes, check generated .csv
+string Parser::process(string content) { // TODO: words are assembling or repeating sometimes, check generated .csv
     buf_irrelevant_symbols = 0;
     buf_total_symbols = 0;
     std::vector<char> result;
@@ -120,47 +120,56 @@ string Parser::process(const string &content) { // TODO: words are assembling or
             continue;
         }
         if (symbol == ' ' || symbol == '\t' || symbol == '\r' || symbol == '\n') {
-            if (space_added) {
-                ++i;
-                continue;
+            if (!space_added) {
+                result.emplace_back(' ');
+                space_added = true;
             }
-            result.emplace_back(' ');
-            space_added = true;
             ++i;
             continue;
         }
         std::bitset<11> cur_byte(symbol);
         unsigned long code;
-        if (u_buf[7] == 1 && u_buf[6] == 1 && u_buf[5] == 0) {
+        if (cur_byte[7] == 0) {
+            u_buf = 0;
+            code = cur_byte.to_ulong();
+        } else if (u_buf[7] == 1 && u_buf[6] == 1 && u_buf[5] == 0) {
             std::bitset<11> b = (u_buf & std::bitset<11>(31)) << 6;
             if (cur_byte[7] != 1 || cur_byte[6] != 0) throw std::runtime_error("wrong unicode");
             b |= (cur_byte & std::bitset<11>(63));
             u_buf = 0;
             code = b.to_ulong();
-        } else if (cur_byte[7] == 0) {
-            u_buf = 0;
-            code = cur_byte.to_ulong();
         } else if (cur_byte[7] == 1 && cur_byte[6] == 1 && cur_byte[5] == 0) {
             u_buf = cur_byte;
             i++;
             continue;
         } else if (cur_byte[7] == 1 && cur_byte[6] == 1 && cur_byte[5] == 1 && cur_byte[4] == 0) {
-            i += 3;
             ++buf_irrelevant_symbols;
             ++buf_total_symbols;
+            if (!space_added) {
+                result.emplace_back(' ');
+                space_added = true;
+            }
+            i += 3;
             continue;
         } else if (cur_byte[7] == 1 && cur_byte[6] == 1 && cur_byte[5] == 1 && cur_byte[4] == 1 && cur_byte[3] == 0) {
-            i += 4;
             ++buf_irrelevant_symbols;
             ++buf_total_symbols;
+            if (!space_added) {
+                result.emplace_back(' ');
+                space_added = true;
+            }
+            i += 4;
             continue;
         } else throw std::runtime_error("wrong unicode");
-        if (isLetter(code)) {
+        if (isAlphaNum(code)) {
             result.emplace_back(char(to_lower(code)));
             space_added = false;
-        }else {
-            ++buf_irrelevant_symbols;
-//            result.emplace_back(' ');
+        } else {
+            if (!isPunct(code)) ++buf_irrelevant_symbols;
+            if (!space_added) {
+                result.emplace_back(' ');
+                space_added = true;
+            }
         }
         ++buf_total_symbols;
         ++i;
@@ -169,18 +178,27 @@ string Parser::process(const string &content) { // TODO: words are assembling or
 }
 
 char Parser::to_lower(unsigned long code) {
-    if (code < 128) {
-        return (char) (code | (unsigned long) 32);
-    } else if (1040 <= code && code <= 1071) return code - 1040 + 224;
+    if (48 <= code && code <= 57) return code;
+    if (code < 128) return (char) (code | (unsigned long) 32);
+    else if (1040 <= code && code <= 1071) return code - 1040 + 224;
     else if (1072 <= code && code <= 1103) return code - 1072 + 224;
     else if (code == 1025 || code == 1105) return 184;
     else throw std::invalid_argument("non-letter passed to to_lower");
 }
 
-bool Parser::isLetter(unsigned long code) {
-    if (48 <= code && code <= 57) return true;  // digits
+bool Parser::isAlphaNum(unsigned long code) {
+    if (48 <= code && code <= 57) return true;
     if (65 <= code && code <= 90) return true;
     if (97 <= code && code <= 122) return true;
     if (1040 <= code && code <= 1103) return true;
     return (code == 1025 || code == 1105);
 }
+
+bool Parser::isPunct(unsigned long code) {
+    if (code >= 32 && code <= 47) return true;
+    if (code >= 59 && code <= 64) return true;
+    if (code >= 91 && code <= 96) return true;
+    if (code >= 122 && code <= 126) return true;
+    return (code >= 160 && code <= 191) || code == 215 || code == 247;
+}
+
