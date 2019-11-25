@@ -50,9 +50,11 @@ public:
 
     static char to_lower(unsigned long code);
 
-    string process(const string &body);
+    string process(string body);
 
-    static bool isLetter(unsigned long code);
+    static bool isAlphaNum(unsigned long code);
+
+    static bool isPunct(unsigned long code);
 
     void parse(const string& path);
 
