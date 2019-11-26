@@ -1,16 +1,19 @@
 import sys, re, itertools as it
 
 if len(sys.argv) < 2:
-	print("USAGE: python makestat.py <filename> <n>")
+	print("USAGE: python makestat.py <filename> [-rus]")
 	exit(0)
 
-letters = [chr(o) for o in range(ord('a'), ord('z') + 1)]
+if "-rus" in sys.argv[2:]:
+	letters = [chr(o) for o in range(ord('а'), ord('я') + 1)]
+else:
+	letters = [chr(o) for o in range(ord('a'), ord('z') + 1)]
 letters.extend([' ', '-'])
 threegrams = {a : 0 for a in list(map(lambda x: "".join(x), it.product(letters, letters, letters)))}
 bigrams = {a : 0 for a in list(map(lambda x: "".join(x), it.product(letters, letters)))}
 
 def get3grams(w):
-	word = " " + w + " "
+	word = " " + w.lower() + " "
 	for i in range(0, len(word) - 2):
 		if word[i:i+3] in threegrams:
 			threegrams[word[i:i+3]] += 1

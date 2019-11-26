@@ -4,3 +4,6 @@ cmake-*
 hp.txt
 jane.txt
 *.csv
+*.txt
+*.stat
+test

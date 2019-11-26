@@ -3,4 +3,4 @@ project(telegram_article)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(tgnews src/main.cpp src/Parser.h src/Parser.cpp)
+add_executable(tgnews src/main.cpp src/Parser.h src/Parser.cpp src/stat.h)
