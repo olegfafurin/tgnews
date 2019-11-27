@@ -39,15 +39,15 @@ public:
     int description_counter = 0;
     int errors_counter = 0;
 
-//    inline static const string DEFAULT_PATH = R"(H:\Docs\data\DataClusteringSample0107\20191101\00)";
-    inline static const string DEFAULT_PATH = R"(test)";
-//    inline static const string CSV_PATH = "pages.txt";
-    inline static const string CSV_PATH = "testpages.txt";
+    inline static const string DEFAULT_PATH = R"(H:\Docs\data\DataClusteringSample0107\20191103)";
+//    inline static const string DEFAULT_PATH = R"(test)";
+    inline static const string CSV_PATH = "pages03.txt";
+//    inline static const string CSV_PATH = "testpages.txt";
     inline static const string DELIMITER = "\t";
     inline static const int IRR_WORD_ABSOLUTE_THRESHOLD = 100;
     inline static const double IRR_WORD_RELATIVE_THRESHOLD = 0.05;
-    inline static const double CHI_ENGLISH_THRESHOLD = 40;
-    inline static const double CHI_RUSSIAN_THRESHOLD = 29;
+    inline static const double CHI_ENGLISH_THRESHOLD = 29;
+    inline static const double CHI_RUSSIAN_THRESHOLD = 3.5;
 
     Parser();
 

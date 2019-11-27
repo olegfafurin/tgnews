@@ -23,14 +23,17 @@ string Parser::join(const T &v, const string &delim) {
 
 void Parser::create_empty_csv() {
     ofs << join(std::vector<string>({"id", "url", "site_name", "published_date",
-                                     "irr_letters", "total_letters","irr_words", "total_words", "lang", "title", "description", "content"}), DELIMITER) +
+                                     "irr_letters", "total_letters", "irr_words", "total_words", "lang", "title",
+                                     "description", "content"}), DELIMITER) +
            "\n";
 }
 
 void Parser::to_csv(const Parser::Page &page) {
     ofs << join(std::vector<string>({std::to_string(page.id), page.url, page.site_name, page.published_date,
-                                     std::to_string(page.irrelevant_symbols), std::to_string(page.total_symbols), std::to_string(page.irrelevant_words), std::to_string(page.total_words),
-                                     page.language == 0 ? "en" : page.language == 1 ? "ru" : "undefined", page.title, page.description, page.content}), DELIMITER) + "\n";
+                                     std::to_string(page.irrelevant_symbols), std::to_string(page.total_symbols),
+                                     std::to_string(page.irrelevant_words), std::to_string(page.total_words),
+                                     page.language == 0 ? "en" : page.language == 1 ? "ru" : "undefined", page.title,
+                                     page.description, page.content}), DELIMITER) + "\n";
 }
 
 string Parser::readFile(const string &path) {
@@ -95,7 +98,6 @@ void Parser::parse(const string &path) {
             page.total_symbols = buf_total_symbols;
             page.language = detect_language(page);
             to_csv(page);
-
         }
     }
 }
@@ -111,8 +113,6 @@ int Parser::detect_language(Page &p) { // returns 0 for english, 1 for russian, 
             ++letters;
         }
     }
-    double share_cyr_letters = (double) russian_letters / letters;
-    double share_eng_letters = (double) english_letters / letters;
     int words_broken = 0;
     int words = 0;
     bool broken = false;
@@ -128,44 +128,62 @@ int Parser::detect_language(Page &p) { // returns 0 for english, 1 for russian, 
     }
     p.irrelevant_words = words_broken;
     p.total_words = words;
-    if ((double) words_broken / words > IRR_WORD_RELATIVE_THRESHOLD && words >= IRR_WORD_ABSOLUTE_THRESHOLD) return -1;
+    if (((double) words_broken / words > IRR_WORD_RELATIVE_THRESHOLD ||
+         (double) p.irrelevant_symbols / p.total_symbols > IRR_WORD_RELATIVE_THRESHOLD) &&
+        (words >= IRR_WORD_ABSOLUTE_THRESHOLD || p.total_symbols > 5 * IRR_WORD_ABSOLUTE_THRESHOLD))
+        return -1;
 
     const std::map<std::string, int> *right_stat;
     if (english_letters > russian_letters) {
         std::map<string, int> observed_stat({});
-        for (const auto& entry: BISTAT_ENG)  observed_stat[entry.first] = 0;
+        for (const auto &entry: BISTAT_ENG) observed_stat[entry.first] = 0;
         right_stat = &BISTAT_ENG;
         for (int i = 0; i < p.content.size() - 1; ++i) {
             string bi = p.content.substr(i, 2);
             if (observed_stat.find(bi) != observed_stat.end()) observed_stat[bi] += 1;
             else if (bi[0] == '_' || bi[1] == '_') observed_stat["__"] += 1;
         }
-        long lhs_sum = std::accumulate(std::begin(*right_stat), std::end(*right_stat), 0, [](const std::size_t previous, const auto& element){ return previous + element.second; });
-        long rhs_sum = std::accumulate(std::begin(observed_stat), std::end(observed_stat), 0, [](const std::size_t previous, const auto& element){ return previous + element.second; });
+        long lhs_sum = std::accumulate(std::begin(*right_stat), std::end(*right_stat), 0,
+                                       [](const std::size_t previous, const auto &element) {
+                                           return previous + element.second;
+                                       });
+        long rhs_sum = std::accumulate(std::begin(observed_stat), std::end(observed_stat), 0,
+                                       [](const std::size_t previous, const auto &element) {
+                                           return previous + element.second;
+                                       });
         double chi_squared = 0.0;
-        for (const auto& entry : *right_stat) {
+        for (const auto &entry : *right_stat) {
             string key = entry.first;
-            chi_squared += ((double) observed_stat[key] / rhs_sum - (double) (*right_stat).at(key) / lhs_sum) * ((double) observed_stat[key] / rhs_sum - (double) (*right_stat).at(key) / lhs_sum) / ((double) (*right_stat).at(key) / lhs_sum);
+            chi_squared += ((double) observed_stat[key] / rhs_sum - (double) (*right_stat).at(key) / lhs_sum) *
+                           ((double) observed_stat[key] / rhs_sum - (double) (*right_stat).at(key) / lhs_sum) /
+                           ((double) (*right_stat).at(key) / lhs_sum);
         }
         if (chi_squared < CHI_ENGLISH_THRESHOLD) return 0;
         else return -1;
-    }
-    else {
-        std::map<std::pair<int,int>, int> observed_stat({});
-        for (const auto& entry: BISTAT_RUS)  observed_stat[entry.first] = 0;
+    } else {
+        std::map<std::pair<int, int>, int> observed_stat({});
+        for (const auto &entry: BISTAT_RUS) observed_stat[entry.first] = 0;
         for (int i = 0; i < p.content.size() - 1; ++i) {
             unsigned char f_letter = p.content[i];
             unsigned char s_letter = p.content[i + 1];
             auto bi = std::pair{f_letter, s_letter};
             if (observed_stat.find(bi) != observed_stat.end()) observed_stat[bi] += 1;
-            else if (bi.first == 95 || bi.second == 95) observed_stat[{95,95}] += 1;
+            else if (bi.first == 95 || bi.second == 95) observed_stat[{95, 95}] += 1;
         }
-        long lhs_sum = std::accumulate(std::begin(BISTAT_RUS), std::end(BISTAT_RUS), 0, [](const std::size_t previous, const auto& element){ return previous + element.second; });
-        long rhs_sum = std::accumulate(std::begin(observed_stat), std::end(observed_stat), 0, [](const std::size_t previous, const auto& element){ return previous + element.second; });
+        long lhs_sum = std::accumulate(std::begin(BISTAT_RUS), std::end(BISTAT_RUS), 0,
+                                       [](const std::size_t previous, const auto &element) {
+                                           return previous + element.second;
+                                       });
+        long rhs_sum = std::accumulate(std::begin(observed_stat), std::end(observed_stat), 0,
+                                       [](const std::size_t previous, const auto &element) {
+                                           return previous + element.second;
+                                       });
         double chi_squared = 0.0;
-        for (const auto& entry : BISTAT_RUS) {
+        for (const auto &entry : BISTAT_RUS) {
             auto key = entry.first;
-            chi_squared += ((double) observed_stat[key] / rhs_sum - (double) (BISTAT_RUS).at(key) / lhs_sum) * ((double) observed_stat[key] / rhs_sum - (double) (BISTAT_RUS).at(key) / lhs_sum) / ((double) (BISTAT_RUS).at(key) / lhs_sum);
+            chi_squared += ((double) observed_stat[key] / rhs_sum - (double) (BISTAT_RUS).at(key) / lhs_sum) *
+                           ((double) observed_stat[key] / rhs_sum - (double) (BISTAT_RUS).at(key) / lhs_sum) /
+                           ((double) (BISTAT_RUS).at(key) / lhs_sum);
         }
         if (chi_squared < CHI_RUSSIAN_THRESHOLD) return 1;
         else return -1;

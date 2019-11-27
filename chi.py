@@ -42,6 +42,6 @@ sumg = sum(list(g.values()))
 for key in list(g.keys()):
 	d[key] = d[key] / sumd
 	g[key] = g[key] / sumg
-	print(key + ": expected " + str(d[key]) + ";  got " + str(g[key]))
+	#print(key + ": expected " + str(d[key]) + ";  got " + str(g[key]))
 chi_squared = sum([(g[key] - d[key]) ** 2 / d[key] for key in list(g.keys())])
 print(chi_squared)
