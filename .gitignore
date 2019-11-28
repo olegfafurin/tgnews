@@ -1,6 +1,7 @@
 cmake-*
 .idea
 .git
+.ipynb_checkpoints
 hp.txt
 jane.txt
 *.csv

@@ -39,7 +39,7 @@ public:
     int description_counter = 0;
     int errors_counter = 0;
 
-    inline static const string DEFAULT_PATH = R"(H:\Docs\data\DataClusteringSample0107\20191103)";
+    inline static const string DEFAULT_PATH = R"(/Users/konstantin.rybkin/projects/tg-contest-data)";
 //    inline static const string DEFAULT_PATH = R"(test)";
     inline static const string CSV_PATH = "pages03.txt";
 //    inline static const string CSV_PATH = "testpages.txt";
